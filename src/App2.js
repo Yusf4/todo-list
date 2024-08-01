@@ -1,20 +1,29 @@
-
-
-
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 
-function App2() {
+function App() {
   const [tasks, setTasks] = useState([]);
   const [task, setTask] = useState("");
+  const [filter, setFilter] = useState("all"); // Filter: all, completed, pending
+
+  useEffect(() => {
+    // Load tasks from local storage on initial render
+    const savedTasks = JSON.parse(localStorage.getItem('tasks')) || [];
+    setTasks(savedTasks);
+  }, []);
+
+  useEffect(() => {
+    // Save tasks to local storage whenever tasks change
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+  }, [tasks]);
+
   const handleInputChange = (event) => {
     setTask(event.target.value);
   };
 
   const handleAddTask = () => {
     if (task.trim() !== "") {
-      setTasks([...tasks, task]);
+      setTasks([...tasks, { text: task, completed: false }]);
       setTask("");
     }
   };
@@ -23,6 +32,26 @@ function App2() {
     const newTasks = tasks.filter((_, i) => i !== index);
     setTasks(newTasks);
   };
+
+  const handleToggleComplete = (index) => {
+    const newTasks = tasks.map((t, i) =>
+      i === index ? { ...t, completed: !t.completed } : t
+    );
+    setTasks(newTasks);
+  };
+
+  const handleEditTask = (index, newText) => {
+    const newTasks = tasks.map((t, i) =>
+      i === index ? { ...t, text: newText } : t
+    );
+    setTasks(newTasks);
+  };
+
+  const filteredTasks = tasks.filter(task => {
+    if (filter === "completed") return task.completed;
+    if (filter === "pending") return !task.completed;
+    return true; // "all" filter
+  });
 
   return (
     <div className="App">
@@ -36,11 +65,29 @@ function App2() {
         />
         <button onClick={handleAddTask}>Add Task</button>
       </div>
+      <div className="filter-container">
+        <button onClick={() => setFilter("all")}>All</button>
+        <button onClick={() => setFilter("completed")}>Completed</button>
+        <button onClick={() => setFilter("pending")}>Pending</button>
+      </div>
       <ul>
-        {tasks.map((task, index) => (
+        {filteredTasks.map((task, index) => (
           <li key={index}>
-            {task}
+            <input
+              type="checkbox"
+              checked={task.completed}
+              onChange={() => handleToggleComplete(index)}
+            />
+            {task.completed ? (
+              <s>{task.text}</s>
+            ) : (
+              <span>{task.text}</span>
+            )}
             <button onClick={() => handleDeleteTask(index)}>Delete</button>
+            <button onClick={() => {
+              const newText = prompt("Edit task:", task.text);
+              if (newText) handleEditTask(index, newText);
+            }}>Edit</button>
           </li>
         ))}
       </ul>
@@ -48,4 +95,4 @@ function App2() {
   );
 }
 
-export default App2;
+export default App;
